@@ -4,7 +4,9 @@
 TagManager:
   serializedVersion: 3
   tags:
-  - PlayerVehicle
+  - Vehicle
+  - Blade
+  - SpawnPoint
   layers:
   - Default
   - TransparentFX
@@ -12,11 +14,11 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Vehicle
+  - Blade
+  - Ground
+  - Wall
+  - Interactable
   - 
   - 
   - 

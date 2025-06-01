@@ -1,28 +1,87 @@
 using UnityEngine;
 
-// 이 스크립트는 메인 카메라에 연결합니다.
-public class CameraController : MonoBehaviour
+namespace CarBlade.InputEvent
 {
-    [Header("카메라 설정")]
-    public Transform target; // 카메라가 따라갈 대상 (플레이어 차량의 Transform)
-    public Vector3 offset = new Vector3(0f, 5f, -10f); // 대상으로부터의 카메라 오프셋
-    public float smoothSpeed = 0.125f; // 카메라 이동의 부드러움 정도
-
-    void LateUpdate() // 모든 Update 호출이 끝난 후 실행되어, 타겟의 움직임을 정확히 반영
+    public class CameraController : MonoBehaviour
     {
-        if (target == null)
+        [Header("Camera Settings")]
+        [SerializeField] private float followDistance = 10f;
+        [SerializeField] private float followHeight = 5f;
+        [SerializeField] private float lookAheadDistance = 5f;
+        [SerializeField] private float smoothTime = 0.3f;
+
+        [Header("Camera Modes")]
+        [SerializeField]
+        private Vector3[] cameraOffsets = new Vector3[]
         {
-            Debug.LogWarning("카메라 타겟이 설정되지 않았습니다!");
-            return;
+            new Vector3(0, 5, -10),    // 기본 후방 뷰
+            new Vector3(0, 8, -15),    // 원거리 뷰
+            new Vector3(0, 2, -6),     // 근접 뷰
+            new Vector3(0, 15, -20)    // 탑다운 뷰
+        };
+
+        private Transform target;
+        private Camera mainCamera;
+        private int currentCameraMode = 0;
+
+        private Vector3 currentVelocity;
+        private Vector3 targetPosition;
+        private Quaternion targetRotation;
+
+        private void Awake()
+        {
+            mainCamera = Camera.main;
+            if (mainCamera == null)
+            {
+                mainCamera = new GameObject("Main Camera").AddComponent<Camera>();
+                mainCamera.tag = "MainCamera";
+            }
         }
 
-        // 타겟의 위치에 오프셋을 더해 원하는 카메라 위치 계산
-        Vector3 desiredPosition = target.position + target.rotation * offset; // 타겟의 회전을 고려하여 오프셋 적용
-        // 현재 카메라 위치에서 원하는 위치로 부드럽게 이동 (Lerp)
-        Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed * Time.deltaTime); // Time.deltaTime을 곱해 프레임률에 독립적으로 만듦
-        transform.position = smoothedPosition;
+        public void SetTarget(Transform newTarget)
+        {
+            target = newTarget;
+        }
 
-        // 카메라가 항상 타겟을 바라보도록 설정
-        transform.LookAt(target.position + Vector3.up * 2f); // 타겟의 약간 윗부분을 바라보도록 조정
+        private void LateUpdate()
+        {
+            if (target == null || mainCamera == null) return;
+
+            UpdateCameraPosition();
+        }
+
+        private void UpdateCameraPosition()
+        {
+            // 현재 카메라 오프셋
+            Vector3 offset = cameraOffsets[currentCameraMode];
+
+            // 타겟 위치 계산
+            targetPosition = target.position + target.TransformDirection(offset);
+
+            // 카메라 위치 스무딩
+            mainCamera.transform.position = Vector3.SmoothDamp(
+                mainCamera.transform.position,
+                targetPosition,
+                ref currentVelocity,
+                smoothTime
+            );
+
+            // 카메라가 타겟을 바라보도록 설정
+            Vector3 lookPosition = target.position + target.forward * lookAheadDistance;
+            mainCamera.transform.LookAt(lookPosition);
+        }
+
+        public void ToggleCamera()
+        {
+            currentCameraMode = (currentCameraMode + 1) % cameraOffsets.Length;
+        }
+
+        public void SetCameraMode(int mode)
+        {
+            if (mode >= 0 && mode < cameraOffsets.Length)
+            {
+                currentCameraMode = mode;
+            }
+        }
     }
 }
